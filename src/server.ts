@@ -73,6 +73,76 @@ server.registerTool(
   }
 )
 
+// ── TOOL 4: Get Task ─────────────────────────────────────────────────────────
+server.registerTool(
+  'get_task',
+  {
+    description: 'Fetch a single task by ID to inspect its full details before editing.',
+    inputSchema: {
+      taskId: z.string().describe('The Todoist task ID'),
+    },
+  },
+  async ({ taskId }) => {
+    const t = await todoist.getTask(taskId)
+    const priority = ['', 'p4', 'p3', 'p2', 'p1'][t.priority]
+    const due = t.due?.datetime ?? t.due?.date ?? 'no due date'
+    const recurring = t.due?.isRecurring ? ' (recurring)' : ''
+    const labels = t.labels.length ? `labels: ${t.labels.join(', ')}` : 'no labels'
+    const duration = t.duration ? `${t.duration.amount} ${t.duration.unit}` : 'no duration'
+    const lines = [
+      `[${t.id}] ${t.content}`,
+      `  priority: ${priority} | due: ${due}${recurring}`,
+      `  project: ${t.projectId}${t.sectionId ? ` | section: ${t.sectionId}` : ''}${t.parentId ? ` | parent: ${t.parentId}` : ''}`,
+      `  ${labels} | duration: ${duration}`,
+      t.description ? `  description: ${t.description}` : '',
+    ].filter(Boolean)
+    return { content: [{ type: 'text', text: lines.join('\n') }] }
+  }
+)
+
+// ── TOOL 4b: Update Task ──────────────────────────────────────────────────────
+server.registerTool(
+  'update_task',
+  {
+    description: 'Edit a task — rename it, change description, priority, labels, due date, or scheduled time.',
+    inputSchema: {
+      taskId: z.string().describe('The Todoist task ID'),
+      content: z.string().optional().describe('New task title'),
+      description: z.string().optional().describe('New task description'),
+      priority: z.number().int().min(1).max(4).optional().describe('Priority 1 (urgent) to 4 (normal)'),
+      labels: z.array(z.string()).optional().describe('Replacement label names (overwrites existing)'),
+      dueString: z.string().optional().describe('Due date string — supports natural language and recurrence e.g. "every day", "tomorrow", "2026-03-04"'),
+      dueDatetime: z.string().optional().describe('Exact due datetime in ISO 8601 format e.g. "2026-03-04T15:00:00Z"'),
+    },
+  },
+  async ({ taskId, content, description, priority, labels, dueString, dueDatetime }) => {
+    const args: Record<string, any> = {}
+    if (content !== undefined) args.content = content
+    if (description !== undefined) args.description = description
+    if (priority !== undefined) args.priority = priority
+    if (labels !== undefined) args.labels = labels
+    if (dueString !== undefined) args.dueString = dueString
+    if (dueDatetime !== undefined) args.dueDatetime = dueDatetime
+    await todoist.updateTask(taskId, args)
+    return { content: [{ type: 'text', text: `Task ${taskId} updated.` }] }
+  }
+)
+
+// ── TOOL 4c: Delete Task ──────────────────────────────────────────────────────
+server.registerTool(
+  'delete_task',
+  {
+    description: 'Permanently delete a task. Cannot be undone.',
+    inputSchema: {
+      taskId: z.string().describe('The Todoist task ID'),
+    },
+  },
+  async ({ taskId }) => {
+    await todoist.deleteTask(taskId)
+    return { content: [{ type: 'text', text: `Task ${taskId} deleted.` }] }
+  }
+)
+
 // ── TOOL 4: Reschedule Task ───────────────────────────────────────────────────
 server.registerTool(
   'reschedule_task',
