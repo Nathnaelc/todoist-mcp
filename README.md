@@ -131,3 +131,7 @@ When using Claude Desktop, set that token in the `mcpServers.<name>.env` block (
 - **Nothing shows up / filters behave oddly**
   - `get_tasks.filter` and `search_tasks.query` are passed to Todoist’s filter language. Try simple queries like `"today"`, `"overdue"`, or `"search: <word>"`.
 
+## License
+
+MIT — see `LICENSE`.
+
