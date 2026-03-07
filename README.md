@@ -1,4 +1,4 @@
-# Todoist MCP Server
+# Todoist MCP Server and CLI
 
 An **MCP (Model Context Protocol) server** that lets Claude (and other MCP-capable clients) manage your Todoist: tasks, projects, labels, sections, comments, scheduling, and completions.
 
@@ -6,12 +6,14 @@ It runs over **stdio transport** (Claude Desktop starts it as a local process an
 
 ## Features
 
-- **Read and search tasks** (including Todoist filter queries)
-- **Create / update / move / complete / delete tasks**
-- **Add and read comments**
-- **Projects + sections** (list + create)
-- **Labels** (list + create)
-- **Recently completed tasks** for reviews/recaps
+- **Full task management** – Create, read, update, reschedule, complete, or delete tasks
+- **Powerful search & filtering** – Use Todoist's filter syntax (e.g., `today`, `overdue`, `#ProjectName`)
+- **Comments** – Add and retrieve task comments
+- **Projects & sections** – Organize and create projects and sections
+- **Labels** – Create and manage task labels
+- **Completed tasks** – Review recently finished tasks (useful for recaps and summaries)
+- **Subtasks** – Create nested tasks with independent scheduling
+- **Natural language scheduling** – Reschedule tasks with plain English due dates
 
 ## Requirements
 
@@ -21,11 +23,17 @@ It runs over **stdio transport** (Claude Desktop starts it as a local process an
 
 ## Install
 
+Clone the repository and install dependencies:
+
 ```bash
+git clone https://github.com/yourusername/todoist_mcp.git
+cd todoist_mcp
 npm install
 ```
 
-## Connect to Claude Desktop (macOS)
+## Connect to Claude Desktop
+
+**Note:** These instructions are for macOS. For Linux/Windows, you'll need to adjust the config path and use forward slashes in file paths.
 
 Claude Desktop reads MCP servers from:
 
@@ -70,6 +78,16 @@ Notes:
 
 Quit Claude Desktop completely and reopen it. You should now be able to ask Claude to use Todoist tools.
 
+## Quick start
+
+Once set up, you can ask Claude things like:
+
+- "Show me my overdue tasks"
+- "Create a task to review the budget for next Monday"
+- "Move all urgent tasks to the Work project"
+- "What did I complete this week?"
+- "Add a comment to task #12345 saying I need to follow up"
+
 ## Tool catalog
 
 This server registers the following MCP tools:
@@ -113,14 +131,6 @@ Run the compiled server:
 npm run start
 ```
 
-## How authentication works
-
-This server authenticates to Todoist using the environment variable:
-
-- **`TODOIST_API_TOKEN`**
-
-When using Claude Desktop, set that token in the `mcpServers.<name>.env` block (see the config snippet above).
-
 ## Troubleshooting
 
 - **Claude can’t start the server**
@@ -131,16 +141,11 @@ When using Claude Desktop, set that token in the `mcpServers.<name>.env` block (
 - **Nothing shows up / filters behave oddly**
   - `get_tasks.filter` and `search_tasks.query` are passed to Todoist’s filter language. Try simple queries like `"today"`, `"overdue"`, or `"search: <word>"`.
 
-## License
-
-MIT — see `LICENSE`.
-
-
-## MCP CLI helper
+## MCP CLI
 
 A lightweight CLI wrapper is available for scripting and cron usage.
 
-List tools:
+List all tools:
 
 ```bash
 npm run mcp:call -- --list-tools
@@ -164,23 +169,27 @@ Development mode (runs the TypeScript server directly via `tsx`):
 npm run mcp:call:dev -- --tool get_tasks --args "{\"filter\":\"today\"}"
 ```
 
-## Daily triage script
-
-Run a generic daily triage and pass any Todoist filter:
-
-```bash
-./scripts/daily-triage.sh "today"
-./scripts/daily-triage.sh "#BT & overdue"
-./scripts/daily-triage.sh "#Salesforce & today"
-./scripts/daily-triage.sh "##Salesforce"
-```
-
-Filter examples:
+**Filter examples:**
 
 ```text
-#ProjectName & (overdue | today)
+today
+overdue
+#MyProject & (overdue | today)
 ##ParentProject
-#BT & @moon
+search: urgent
 ```
 
-The script writes timestamped results to `logs/`.
+## Contributing
+
+Contributions are welcome! Feel free to open issues, submit pull requests, or suggest improvements. Check out the existing code and tests to get started.
+Dropping your star would be appreciated too!
+
+## Resources
+
+- [Todoist API Docs](https://developer.todoist.com/rest/v2/)
+- [MCP Specification](https://modelcontextprotocol.io/)
+- [Claude Desktop Setup](https://claude.ai/download)
+
+## License
+
+MIT — see `LICENSE`.
