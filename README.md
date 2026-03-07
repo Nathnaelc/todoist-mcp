@@ -4,6 +4,74 @@ An **MCP (Model Context Protocol) server** that lets Claude (and other MCP-capab
 
 It runs over **stdio transport** (Claude Desktop starts it as a local process and calls its tools).
 
+## Use this with CLI (GPT-ready + cron-friendly)
+
+If you do not want to be locked to Claude Desktop, use the included CLI wrapper.
+
+### 1) Build once
+
+```bash
+npm run build
+```
+
+### 2) Put your Todoist token in your shell env
+
+```bash
+export TODOIST_API_TOKEN="YOUR_TODOIST_API_TOKEN"
+```
+
+### 3) List available MCP tools from terminal
+
+```bash
+npm run mcp:call -- --list-tools
+```
+
+### 4) Call a tool directly from terminal
+
+```bash
+npm run mcp:call -- --tool get_tasks --args '{"filter":"#Salesforce_quick & (overdue | today)"}'
+```
+
+This gives you a **CLI control plane** you can use with:
+
+- GPT agents/orchestrators (they call this CLI command),
+- shell scripts,
+- cron jobs,
+- CI/CD scheduled runs.
+
+### 5) Example automation script (safe daily triage)
+
+Create `scripts/daily-salesforce-quick-triage.sh`:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd /ABSOLUTE/PATH/TO/todoist-mcp
+export TODOIST_API_TOKEN="YOUR_TODOIST_API_TOKEN"
+
+# 1) Pull urgent tasks in your Salesforce_quick scope
+npm run mcp:call -- --tool get_tasks --args '{"filter":"#Salesforce_quick & (overdue | today)"}' > /tmp/sf_quick_today.json
+
+# 2) (Optional) add your own logic here to inspect JSON and call update/reschedule tools
+```
+
+Then schedule with cron:
+
+```cron
+0 8 * * * /ABSOLUTE/PATH/TO/todoist-mcp/scripts/daily-salesforce-quick-triage.sh >> /ABSOLUTE/PATH/TO/todoist-mcp/logs/triage.log 2>&1
+```
+
+### 6) GPT integration pattern
+
+Use GPT for planning text, and use this CLI for deterministic execution:
+
+1. GPT generates a proposed plan (dry run).
+2. You approve.
+3. GPT (or your script) executes `npm run mcp:call -- --tool ... --args ...` in batches.
+
+This keeps AI usage efficient while still automating your Todoist operations.
+
 ## Features
 
 - **Read and search tasks** (including Todoist filter queries)
@@ -93,6 +161,44 @@ This server registers the following MCP tools:
 - **`create_label`**: Create a label.
 - **`get_completed_tasks`**: List recently completed tasks (since a date, with a limit).
 
+## Practical setup to reduce stuck sessions and model usage
+
+If you want reliable operation without long interactive sessions:
+
+1. Keep Todoist mutations in CLI commands (`npm run mcp:call ...`).
+2. Use GPT/Claude mainly for planning and review summaries.
+3. Run recurring jobs on cron for predictable low-touch execution.
+
+### Suggested operating model
+
+- **Batch actions**: ask the agent to do one grouped operation (e.g. triage overdue + reschedule + tag), instead of many small interactive turns.
+- **Time-box automation runs**: execute a morning and evening run via CLI/script, then stop.
+- **Fallback-first prompts**: ask the agent to produce a dry-run plan first, then execute.
+- **Idempotent routines**: prefer workflows that can run twice safely (e.g., add label only if missing).
+
+### Example focus prompt for your Salesforce_quick area
+
+Use Todoist filter queries to keep the agent focused on the correct project/subprojects:
+
+- `"#Salesforce_quick | ##Salesforce_quick"` (project + nested projects)
+- `"#Salesforce_quick & (overdue | today)"`
+- `"#Salesforce_quick & !@waiting"`
+
+Then ask the agent to:
+
+- list top 10 actionable tasks,
+- identify blockers,
+- convert large tasks into subtasks,
+- reschedule realistically,
+- and return a concise execution plan.
+
+### Recommended guardrails for autonomous runs
+
+- Cap writes per run (example: max 20 updates).
+- Require confirmation for destructive tools (`delete_task`).
+- Log each run summary (what changed, what failed, what needs manual follow-up).
+- Keep a recovery query handy (e.g. recent updates via labels/comments) so you can audit quickly.
+
 ## Development
 
 Run in development mode (no build step):
@@ -134,4 +240,3 @@ When using Claude Desktop, set that token in the `mcpServers.<name>.env` block (
 ## License
 
 MIT — see `LICENSE`.
-
