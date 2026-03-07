@@ -135,3 +135,52 @@ When using Claude Desktop, set that token in the `mcpServers.<name>.env` block (
 
 MIT — see `LICENSE`.
 
+
+## MCP CLI helper
+
+A lightweight CLI wrapper is available for scripting and cron usage.
+
+List tools:
+
+```bash
+npm run mcp:call -- --list-tools
+```
+
+Call a tool:
+
+```bash
+npm run mcp:call -- --tool get_tasks --args '{"filter":"today"}'
+```
+
+Cross-platform `--args` quoting (Windows-friendly):
+
+```bash
+npm run mcp:call -- --tool get_tasks --args "{\"filter\":\"today\"}"
+```
+
+Development mode (runs the TypeScript server directly via `tsx`):
+
+```bash
+npm run mcp:call:dev -- --tool get_tasks --args "{\"filter\":\"today\"}"
+```
+
+## Daily triage script
+
+Run a generic daily triage and pass any Todoist filter:
+
+```bash
+./scripts/daily-triage.sh "today"
+./scripts/daily-triage.sh "#BT & overdue"
+./scripts/daily-triage.sh "#Salesforce & today"
+./scripts/daily-triage.sh "##Salesforce"
+```
+
+Filter examples:
+
+```text
+#ProjectName & (overdue | today)
+##ParentProject
+#BT & @moon
+```
+
+The script writes timestamped results to `logs/`.
